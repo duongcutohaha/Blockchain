@@ -1,5 +1,6 @@
 <p align="center">
-<img width="699" height="1070" alt="z7899769040839_0c038edb8fe63c9bc48fc77518ac9042" src="https://github.com/user-attachments/assets/dc29f92c-6a4b-4d9d-b6d3-e3f50a723f6d" />
+<img width="697" height="1075" alt="z7899831181397_794209c53967c75bf48cfb35d54277e3" src="https://github.com/user-attachments/assets/68b17fa1-11ae-465a-8ece-4917e357a3bb" />
+
 </p>
 # Xây dựng hệ thống đặt tour du lịch minh bạch bằng blockchain
 
