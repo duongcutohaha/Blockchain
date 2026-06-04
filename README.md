@@ -1,3 +1,6 @@
+<p align="center">
+<img width="699" height="1070" alt="z7899769040839_0c038edb8fe63c9bc48fc77518ac9042" src="https://github.com/user-attachments/assets/dc29f92c-6a4b-4d9d-b6d3-e3f50a723f6d" />
+</p>
 # Xây dựng hệ thống đặt tour du lịch minh bạch bằng blockchain
 
 Hệ thống đặt tour nhanh chóng tiện lợi , khách hàng xem đánh giá trực tiếp về nơi mình đang quan tâm tìm .Chỉ khách đã đi tour mới được mở khóa tính năng đánh giá. Toàn bộ review được ghi lên Blockchain, không ai (kể cả admin) có thể sửa hay xóa.Băm đánh giá và lưu vào block chain khi khách hàng muốn xem đánh giá thì p đối chiếu hàm băm đúng thì mới hiện đánh giá thật nếu k sẽ hiện đánh giá đã bị sửa đổi.
