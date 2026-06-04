@@ -14,9 +14,7 @@ tours
 bookings
 reviews
 ## Chức năng chính
-Dự án là ứng dụng web tĩnh chạy hoàn toàn trên trình duyệt.
-Không có backend / server-side, mọi dữ liệu được quản lý bằng localStorage.
-Không dùng thư viện/framework bên ngoài, toàn bộ là vanilla JavaScript.
+đây là một mini web app đặt tour + quản trị tour + đánh giá, chạy hoàn toàn bằng HTML/CSS/JS.
 ### Admin
 
 Quản lý tour:
@@ -64,9 +62,6 @@ Mở Terminal tại blockchain
 Chạy:
 python -m http.server 8000
 Mở http://localhost:8000
-
-## Chạy với Ganache
-
 
 ## Kiểm thử smart contract
 
