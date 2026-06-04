@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đánh giá tour</title>
+
+<link rel="stylesheet" href="css/style.css">
+<script src="js/toast.js"></script>
+</head>
+<body>
+
+<div class="page-header">
+    <div>
+        <h1>Đánh giá Tour</h1>
+        <p class="small">Gửi đánh giá cho tour bạn đã đặt và xem lại lịch sử riêng của bạn.</p>
+    </div>
+    <a class="back-link" href="index.html">← Trang chủ</a>
+</div>
+
+<div class="review-page">
+    <section class="review-panel">
+        <div class="card review-box">
+            <div class="section-header">
+                <h2>Gửi đánh giá</h2>
+                <span class="badge">Chỉ dành cho khách đã đặt</span>
+            </div>
+            <div class="review-form">
+                <label for="tourId">Chọn tour</label>
+                <select id="tourId"></select>
+
+                <label for="rating">Số sao</label>
+                <input type="number" id="rating" min="1" max="5" placeholder="Số sao (1-5)">
+
+                <label for="comment">Nội dung đánh giá</label>
+                <textarea id="comment" placeholder="Nhập đánh giá..."></textarea>
+
+                <button onclick="submitReview()">Gửi đánh giá</button>
+                <div id="reviewFormInfo"></div>
+            </div>
+        </div>
+
+        <div class="card review-box">
+            <div class="section-header">
+                <h2>Đánh giá tour</h2>
+                <div class="filter-row">
+                    <label for="reviewFilter">Xem theo tour:</label>
+                    <select id="reviewFilter" onchange="loadReviews()">
+                        <option value="">Tất cả tour</option>
+                    </select>
+                </div>
+            </div>
+            <div id="reviewSummary"></div>
+            <div id="reviewList" class="review-grid"></div>
+        </div>
+    </section>
+
+    <section class="card history-box">
+        <div class="section-header">
+            <h2>Lịch sử đánh giá của tôi</h2>
+        </div>
+        <div id="myReviewHistory" class="review-grid"></div>
+    </section>
+</div>
+
+<script>
+let user =
+JSON.parse(
+localStorage.getItem(
+"currentUser"
+)) || null;
+
+let tours =
+JSON.parse(
+localStorage.getItem(
+"tours"
+)) || [];
+
+let bookings =
+JSON.parse(
+localStorage.getItem(
+"bookings"
+)) || [];
+
+let select =
+document.getElementById(
+"tourId"
+);
+
+let filter =
+document.getElementById(
+"reviewFilter"
+);
+
+let reviewFormInfo =
+document.getElementById(
+"reviewFormInfo"
+);
+
+let reviews =
+JSON.parse(
+localStorage.getItem(
+"reviews"
+)) || [];
+
+function getQueryParam(name){
+    let params = new URLSearchParams(window.location.search);
+    return params.get(name);
+}
+
+let initialTourId = Number(getQueryParam("tourId")) || "";
+
+function renderBookedTours(){
+    select.innerHTML = "";
+
+    if(!user){
+        select.innerHTML = `
+            <option value="">Đăng nhập để gửi đánh giá</option>
+        `;
+        document.getElementById("rating").disabled = true;
+        document.getElementById("comment").disabled = true;
+        reviewFormInfo.innerHTML = `
+            <p><a href="login.html">Đăng nhập</a> để đánh giá tour.</p>
+        `;
+        return;
+    }
+
+    let bookedTours = tours.filter(t =>
+        bookings.some(b =>
+            b.userId == user.id && b.tourId == t.id
+        )
+    );
+
+    if(bookedTours.length === 0){
+        select.innerHTML = `
+            <option value="">Bạn chưa đặt tour nào để đánh giá</option>
+        `;
+        document.getElementById("rating").disabled = true;
+        document.getElementById("comment").disabled = true;
+        reviewFormInfo.innerHTML = `
+            <p>Bạn phải đặt tour để gửi đánh giá.</p>
+        `;
+        return;
+    }
+
+    bookedTours.forEach(t => {
+        select.innerHTML += `
+            <option value="${t.id}">${t.name}</option>
+        `;
+    });
+    // Nếu truy cập với query param ?tourId= và user đã đặt tour đó, chọn sẵn
+    if(initialTourId){
+        let has = bookedTours.some(bt => bt.id === initialTourId);
+        if(has){
+            select.value = initialTourId;
+        }
+    }
+    // Kiểm tra quyền đánh giá khi thay đổi chọn tour
+    select.addEventListener('change', checkReviewAllowed);
+}
+
+function renderReviewFilter(){
+    filter.innerHTML = "";
+    filter.innerHTML += `
+        <option value="">Tất cả tour</option>
+    `;
+
+    tours.forEach(t => {
+        filter.innerHTML += `
+            <option value="${t.id}">${t.name}</option>
+        `;
+    });
+}
+
+function checkReviewAllowed(){
+    // Kiểm tra xem user đã đánh giá tour đang chọn chưa; nếu rồi thì khoá form
+    if(!user) return;
+    let selectedTourId = Number(select.value) || null;
+    if(!selectedTourId){
+        document.getElementById("rating").disabled = false;
+        document.getElementById("comment").disabled = false;
+        reviewFormInfo.innerHTML = "";
+        return;
+    }
+
+    reviews = JSON.parse(localStorage.getItem("reviews")) || [];
+    let existing = reviews.find(r => r.userId == user.id && r.tourId == selectedTourId);
+    if(existing){
+        document.getElementById("rating").disabled = true;
+        document.getElementById("comment").disabled = true;
+        reviewFormInfo.innerHTML = `<p>Bạn đã đánh giá tour này vào ${existing.createdAt}. Không thể sửa hoặc đánh giá lại.</p>`;
+    } else {
+        document.getElementById("rating").disabled = false;
+        document.getElementById("comment").disabled = false;
+        reviewFormInfo.innerHTML = "";
+    }
+}
+
+function submitReview(){
+    if(!user){
+        toastError("Bạn cần đăng nhập để đánh giá.");
+        location.href = "login.html";
+        return;
+    }
+
+    let selectedTourId = Number(tourId.value);
+    let ratingValue = Number(rating.value);
+    let commentText = comment.value.trim();
+
+    // Kiểm tra người dùng đã đặt tour này chưa
+    let booked = bookings.some(b => b.userId == user.id && b.tourId == selectedTourId);
+    if(!booked){
+        toastError("Bạn phải đặt tour này mới được đánh giá.");
+        return;
+    }
+
+    // Kiểm tra đã từng đánh giá tour này chưa
+    reviews = JSON.parse(localStorage.getItem("reviews")) || [];
+    let already = reviews.find(r => r.userId == user.id && r.tourId == selectedTourId);
+    if(already){
+        toastError("Bạn đã đánh giá tour này rồi. Không thể đánh giá lại.");
+        return;
+    }
+
+    if(!selectedTourId){
+        toastError("Vui lòng chọn tour để đánh giá.");
+        return;
+    }
+
+    if(!ratingValue || ratingValue < 1 || ratingValue > 5){
+        toastError("Vui lòng nhập số sao từ 1 đến 5.");
+        return;
+    }
+
+    if(commentText.length === 0){
+        toastError("Vui lòng nhập nội dung đánh giá.");
+        return;
+    }
+
+    reviews.push({
+        id: Date.now(),
+        userId: user.id,
+        tourId: selectedTourId,
+        rating: ratingValue,
+        comment: commentText,
+        createdAt: new Date().toLocaleString()
+    });
+
+    localStorage.setItem(
+        "reviews",
+        JSON.stringify(reviews)
+    );
+
+    rating.value = "";
+    comment.value = "";
+
+    toastSuccess("Đánh giá thành công");
+
+    loadReviews();
+    renderMyReviewHistory();
+    checkReviewAllowed();
+}
+
+function loadReviews(){
+    let currentFilter = Number(filter.value) || null;
+
+    reviews = JSON.parse(localStorage.getItem("reviews")) || [];
+
+    let filteredReviews = currentFilter
+        ? reviews.filter(r => r.tourId === currentFilter)
+        : reviews;
+
+    let summaryText = "";
+    if(currentFilter){
+        let tour = tours.find(t => t.id === currentFilter) || { name: "Tour đã xóa" };
+        let count = filteredReviews.length;
+        let avg = count > 0
+            ? (filteredReviews.reduce((sum, r) => sum + r.rating, 0) / count).toFixed(1)
+            : 0;
+
+        summaryText = `
+            <div class="card">
+                <h3>Đánh giá tour: ${tour.name}</h3>
+                <p>⭐ Trung bình: ${avg}/5</p>
+                <p>Số đánh giá: ${count}</p>
+            </div>
+        `;
+    } else {
+        let count = filteredReviews.length;
+        let avg = count > 0
+            ? (filteredReviews.reduce((sum, r) => sum + r.rating, 0) / count).toFixed(1)
+            : 0;
+
+        summaryText = `
+            <div class="card">
+                <h3>Đánh giá tất cả tour</h3>
+                <p>⭐ Trung bình chung: ${avg}/5</p>
+                <p>Tổng số đánh giá: ${count}</p>
+            </div>
+        `;
+    }
+
+    document.getElementById("reviewSummary").innerHTML = summaryText;
+
+    if(filteredReviews.length === 0){
+        document.getElementById("reviewList").innerHTML = `
+            <p>Chưa có đánh giá nào.</p>
+        `;
+        return;
+    }
+
+    let html = "";
+
+    filteredReviews.forEach(r => {
+        let tour = tours.find(t => t.id == r.tourId) || { name: "Tour đã xóa" };
+        let reviewer = r.userId === user.id ? "Bạn" : `Người dùng ${r.userId}`;
+
+        html += `
+            <div class="review-item">
+                <h3>${tour.name}</h3>
+                <p><strong>${reviewer}</strong></p>
+                <p>⭐ ${r.rating}/5</p>
+                <p>${r.comment}</p>
+                <p><small>Ngày đánh giá: ${r.createdAt || "-"}</small></p>
+            </div>
+        `;
+    });
+
+    document.getElementById("reviewList").innerHTML = html;
+}
+
+function renderMyReviewHistory(){
+    if(!user){
+        document.getElementById("myReviewHistory").innerHTML = `
+            <p><a href="login.html">Đăng nhập</a> để xem lịch sử đánh giá của bạn.</p>
+        `;
+        return;
+    }
+
+    reviews = JSON.parse(localStorage.getItem("reviews")) || [];
+    let userReviews = reviews.filter(r => r.userId == user.id);
+
+    if(userReviews.length === 0){
+        document.getElementById("myReviewHistory").innerHTML = `
+            <p>Bạn chưa đánh giá tour nào.</p>
+        `;
+        return;
+    }
+
+    let html = "";
+
+    userReviews.forEach(r => {
+        let tour = tours.find(t => t.id == r.tourId) || { name: "Tour đã xóa" };
+        html += `
+            <div class="review-item">
+                <h3>${tour.name}</h3>
+                <p>⭐ ${r.rating}/5</p>
+                <p>${r.comment}</p>
+                <p><small>Ngày đánh giá: ${r.createdAt || "-"}</small></p>
+            </div>
+        `;
+    });
+
+    document.getElementById("myReviewHistory").innerHTML = html;
+}
+
+renderBookedTours();
+renderReviewFilter();
+if(initialTourId){
+    filter.value = initialTourId;
+}
+loadReviews();
+renderMyReviewHistory();
+</script>
+
+</body>
+</html>

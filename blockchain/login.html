@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Đăng nhập</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/toast.js"></script>
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <div class="branding">
+            <h1>🌍 Hệ thống đặt tour</h1>
+            <p class="small">Đăng nhập để tiếp tục trải nghiệm</p>
+        </div>
+        <nav>
+            <a href="index.html">Trang chủ</a>
+            <a href="register.html">Đăng ký</a>
+        </nav>
+    </div>
+</header>
+
+<div class="form-container">
+
+    <h2>Đăng nhập</h2>
+
+    <input
+        type="email"
+        id="email"
+        placeholder="Email"
+    >
+
+    <input
+        type="password"
+        id="password"
+        placeholder="Mật khẩu"
+    >
+
+    <button onclick="login()">
+        Đăng nhập
+    </button>
+
+    <p>
+        Chưa có tài khoản?
+        <a href="register.html">
+            Đăng ký
+        </a>
+    </p>
+
+</div>
+
+<script>
+
+function login(){
+
+    let users =
+    JSON.parse(
+        localStorage.getItem("users")
+    ) || [];
+
+    let email =
+    document.getElementById("email").value;
+
+    let password =
+    document.getElementById("password").value;
+
+    let user =
+    users.find(u =>
+
+        u.email === email
+
+        &&
+
+        u.password === password
+
+    );
+
+    if(user){
+
+        localStorage.setItem(
+            "currentUser",
+            JSON.stringify(user)
+        );
+
+        toastSuccess("Đăng nhập thành công");
+
+        location.href =
+        "index.html";
+    }
+    else{
+
+        toastError(
+        "Sai tài khoản hoặc mật khẩu"
+        );
+
+    }
+}
+
+</script>
+
+</body>
+</html>

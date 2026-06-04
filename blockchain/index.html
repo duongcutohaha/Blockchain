@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Đặt Tour Du Lịch</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/toast.js"></script>
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <div class="branding">
+            <h1>🌍 HỆ THỐNG ĐẶT TOUR DU LỊCH</h1>
+            <p class="small">⭐ Trải nghiệm hành trình tuyệt vời — đặt tour đơn giản, an toàn</p>
+        </div>
+
+        <nav>
+            <a href="index.html">Trang chủ</a>
+            <a href="history.html">Lịch sử đặt tour</a>
+            <a href="review.html">Đánh giá</a>
+            <a href="admin.html">Quản trị</a>
+            <span id="authLinks"></span>
+        </nav>
+    </div>
+</header>
+
+<section class="search-box">
+    <input
+        type="text"
+        id="searchInput"
+        placeholder="Tìm kiếm tour..."
+        onkeyup="searchTour()"
+    >
+</section>
+
+<section id="tourList" class="tour-container">
+</section>
+
+<div id="reviewModal" class="review-modal hidden">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2 class="modal-title">Đánh giá tour</h2>
+            <button class="modal-close" onclick="closeReviewModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <p>Đang tải đánh giá...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+
+let currentUser =
+JSON.parse(localStorage.getItem("currentUser")) || null;
+
+let authLinks =
+document.getElementById(
+"authLinks"
+);
+
+if(currentUser){
+    authLinks.innerHTML = `
+        <button onclick="logout()">Đăng xuất</button>
+    `;
+} else {
+    authLinks.innerHTML = `
+        <a href="login.html">Đăng nhập</a>
+        <a href="register.html">Đăng ký</a>
+    `;
+}
+
+let tours =
+JSON.parse(localStorage.getItem("tours")) || [];
+
+if(tours.length === 0){
+
+    tours = [
+
+        {
+            id:1,
+            name:"Tour Đà Nẵng",
+            location:"Đà Nẵng",
+            price:3500000,
+            image:"https://via.placeholder.com/400x200?text=Tour+Da+Nang",
+            description:"Tour Đà Nẵng 3 ngày 2 đêm"
+        },
+
+        {
+            id:2,
+            name:"Tour Hạ Long",
+            location:"Quảng Ninh",
+            price:2800000,
+            image:"https://via.placeholder.com/400x200?text=Tour+Ha+Long",
+            description:"Khám phá Vịnh Hạ Long"
+        },
+
+        {
+            id:3,
+            name:"Tour Đà Lạt",
+            location:"Lâm Đồng",
+            price:3200000,
+            image:"https://via.placeholder.com/400x200?text=Tour+Da+Lat",
+            description:"Đà Lạt ngàn hoa"
+        }
+
+    ];
+
+    localStorage.setItem(
+        "tours",
+        JSON.stringify(tours)
+    );
+}
+
+renderTours(tours);
+
+function openReviewModal(tourId){
+    let tour = tours.find(t => t.id === tourId) || { name: "Tour" };
+    let reviews = JSON.parse(localStorage.getItem("reviews")) || [];
+    let tourReviews = reviews.filter(r => r.tourId === tourId);
+    let modal = document.getElementById("reviewModal");
+    let modalBody = modal.querySelector(".modal-body");
+
+    modal.querySelector(".modal-title").textContent = `Đánh giá tour ${tour.name}`;
+
+    if(tourReviews.length === 0){
+        modalBody.innerHTML = `
+            <div class="card">
+                <p>Hiện chưa có đánh giá cho tour này.</p>
+            </div>
+        `;
+    } else {
+        let average = (tourReviews.reduce((sum, item) => sum + item.rating, 0) / tourReviews.length).toFixed(1);
+        let html = `
+            <div class="card">
+                <h3>Trung bình ${average}/5</h3>
+                <p>${tourReviews.length} đánh giá</p>
+            </div>
+        `;
+        tourReviews.forEach(review => {
+            let reviewer = currentUser && review.userId === currentUser.id ? "Bạn" : `Người dùng ${review.userId}`;
+            html += `
+                <div class="review-entry">
+                    <h3>${reviewer}</h3>
+                    <p>⭐ ${review.rating}/5</p>
+                    <p>${review.comment}</p>
+                    <small>${review.createdAt || "-"}</small>
+                </div>
+            `;
+        });
+        modalBody.innerHTML = html;
+    }
+
+    modal.classList.remove("hidden");
+}
+
+function closeReviewModal(){
+    document.getElementById("reviewModal").classList.add("hidden");
+}
+
+function renderTours(data){
+
+    let html = "";
+
+    data.forEach(tour => {
+
+        html += `
+
+        <div class="tour-wrapper">
+            <div class="tour-card">
+
+                ${tour.image ? `<img class="tour-image" src="${tour.image}" alt="${tour.name}">` : ""}
+
+                <div class="content">
+                    <h2>${tour.name}</h2>
+
+                    <p>
+                        📍 ${tour.location}
+                    </p>
+
+                    <p class="small muted">
+                        ${tour.description}
+                    </p>
+
+                    <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;">
+                        <button onclick="bookTour(${tour.id})">Đặt Tour</button>
+                        <button onclick="openReviewModal(${tour.id})">Xem đánh giá</button>
+                        <div class="price-badge">${Number(tour.price).toLocaleString()} VNĐ</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        `;
+    });
+
+    document.getElementById("tourList")
+    .innerHTML = html;
+}
+
+function searchTour(){
+
+    let keyword =
+    document.getElementById("searchInput")
+    .value
+    .toLowerCase();
+
+    let filtered =
+    tours.filter(tour =>
+
+        tour.name
+        .toLowerCase()
+        .includes(keyword)
+
+        ||
+
+        tour.location
+        .toLowerCase()
+        .includes(keyword)
+
+    );
+
+    renderTours(filtered);
+}
+
+function bookTour(tourId){
+
+    if(!currentUser){
+        toastError("Vui lòng đăng nhập để đặt tour.");
+        location.href = "login.html";
+        return;
+    }
+
+    let phone = prompt("Vui lòng nhập số điện thoại để dịch vụ tour liên hệ lại:");
+    if(phone === null){
+        return;
+    }
+    phone = phone.trim();
+    if(!phone || !/^\+?[0-9\s\-]{9,15}$/.test(phone)){
+        toastError("Số điện thoại không hợp lệ. Vui lòng nhập lại.");
+        return;
+    }
+
+    let bookings =
+    JSON.parse(
+        localStorage.getItem("bookings")
+    ) || [];
+
+    bookings.push({
+
+        id: Date.now(),
+
+        userId: currentUser.id,
+
+        tourId: tourId,
+
+        phone: phone,
+
+        bookingDate:
+        new Date().toLocaleString(),
+
+        status:"Đã đặt"
+
+    });
+
+    localStorage.setItem(
+        "bookings",
+        JSON.stringify(bookings)
+    );
+
+    toastSuccess(
+        "Đặt tour thành công! Chúng tôi sẽ liên hệ lại theo số bạn cung cấp."
+    );
+}
+
+function logout(){
+
+    localStorage.removeItem(
+        "currentUser"
+    );
+
+    toastSuccess(
+        "Đăng xuất thành công"
+    );
+
+    location.href =
+    "login.html";
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Quản trị Tour</title>
+
+<link rel="stylesheet" href="css/style.css">
+<script src="js/toast.js"></script>
+</head>
+
+<body>
+
+<header>
+	<div class="container">
+		<div class="branding">
+			<h1>🌍 Quản trị Tour</h1>
+			<p class="small">Quản lý tour, ảnh và nội dung</p>
+		</div>
+		<nav>
+			<a href="index.html">Trang chủ</a>
+		</nav>
+	</div>
+</header>
+
+<main style="margin-top:16px">
+
+<h1>Quản lý Tour</h1>
+
+<a href="index.html">← Trang chủ</a>
+
+<hr>
+
+<input
+id="name"
+placeholder="Tên tour"
+>
+
+<input
+id="location"
+placeholder="Địa điểm"
+>
+
+<input
+id="price"
+type="number"
+placeholder="Giá"
+>
+
+<input
+id="imageFile"
+type="file"
+accept="image/*"
+>
+
+<div style="margin-top:8px;">
+	<img id="imagePreview" src="" alt="Xem trước ảnh" style="max-width:220px;display:none;border-radius:8px;box-shadow:0 8px 24px rgba(2,6,23,0.06)">
+</div>
+
+<input id="editId" type="hidden" value="">
+
+<textarea
+id="description"
+placeholder="Mô tả"
+></textarea>
+
+<button id="submitBtn" onclick="handleAddOrUpdate()">
+Thêm Tour
+</button>
+
+<hr>
+
+<div id="tourList"></div>
+
+<!-- Admin read-only review modal -->
+<div id="adminReviewModal" class="review-modal hidden">
+	<div class="modal-card">
+		<div class="modal-header">
+			<h2 class="modal-title">Đánh giá</h2>
+			<button class="modal-close" onclick="closeAdminReviewModal()">×</button>
+		</div>
+		<div class="modal-body" id="adminReviewBody">
+			<p>Đang tải...</p>
+		</div>
+	</div>
+</div>
+
+<script>
+
+let user =
+JSON.parse(
+localStorage.getItem(
+"currentUser"
+));
+
+if(
+!user ||
+user.role !== "admin"
+){
+
+toastError(
+"Không có quyền truy cập"
+);
+
+location.href =
+"index.html";
+}
+
+function loadTours(){
+
+let tours = JSON.parse(localStorage.getItem("tours")) || [];
+let reviews = JSON.parse(localStorage.getItem("reviews")) || [];
+
+let html = "";
+
+tours.forEach(t => {
+
+html += `
+
+<div class="card">
+
+<h3>
+${t.name}
+</h3>
+
+${t.image ? `<img class="tour-image" src="${t.image}" alt="${t.name}">` : ""}
+
+<p>
+${t.location}
+</p>
+
+<p>
+${Number(
+t.price
+).toLocaleString()}
+VNĐ
+</p>
+
+	<p>
+${t.description || ""}
+	</p>
+
+
+	<p>Số đánh giá: ${reviews.filter(r => r.tourId == t.id).length}</p>
+
+	<button onclick="openAdminReviews(${t.id})">Xem đánh giá</button>
+
+	<button onclick="startEditTour(${t.id})">Sửa</button>
+
+	<button onclick="deleteTour(${t.id})">Xóa</button>
+
+</div>
+
+`;
+
+});
+
+document.getElementById(
+"tourList"
+).innerHTML = html;
+}
+
+function handleAddOrUpdate(){
+	let editId = document.getElementById("editId").value;
+	if(editId) {
+		updateTour(Number(editId));
+	} else {
+		addTour();
+	}
+}
+
+function addTour(){
+	let tours = JSON.parse(localStorage.getItem("tours")) || [];
+
+	let nameEl = document.getElementById("name");
+	let locationEl = document.getElementById("location");
+	let priceEl = document.getElementById("price");
+	let descEl = document.getElementById("description");
+	let fileEl = document.getElementById("imageFile");
+
+	function pushTour(imageData){
+		tours.push({
+			id: Date.now(),
+			name: nameEl.value,
+			location: locationEl.value,
+			price: priceEl.value,
+			image: imageData || "",
+			description: descEl.value
+		});
+
+		localStorage.setItem("tours", JSON.stringify(tours));
+		loadTours();
+				toastSuccess("Thêm tour thành công");
+		}
+
+	if(fileEl.files && fileEl.files[0]){
+		let reader = new FileReader();
+		reader.onload = function(e){
+			pushTour(e.target.result);
+		};
+		reader.readAsDataURL(fileEl.files[0]);
+	} else {
+		pushTour("");
+	}
+}
+
+function updateTour(id){
+	let tours = JSON.parse(localStorage.getItem("tours")) || [];
+	let tour = tours.find(t => t.id === id);
+	if(!tour) return;
+
+	let nameEl = document.getElementById("name");
+	let locationEl = document.getElementById("location");
+	let priceEl = document.getElementById("price");
+	let descEl = document.getElementById("description");
+	let fileEl = document.getElementById("imageFile");
+
+	function applyUpdate(imageData){
+		tour.name = nameEl.value;
+		tour.location = locationEl.value;
+		tour.price = priceEl.value;
+		tour.description = descEl.value;
+		if(imageData !== null){
+			tour.image = imageData;
+		}
+
+		localStorage.setItem("tours", JSON.stringify(tours));
+		toastSuccess("Cập nhật thành công");
+		loadTours();
+		clearForm();
+	}
+
+	if(fileEl.files && fileEl.files[0]){
+		let reader = new FileReader();
+		reader.onload = function(e){
+			applyUpdate(e.target.result);
+		};
+		reader.readAsDataURL(fileEl.files[0]);
+	} else {
+		// no new file -> keep existing image
+		applyUpdate(null);
+	}
+}
+
+function deleteTour(id){
+
+	if(!confirm('Bạn có chắc muốn xóa tour này?')){
+		toastInfo('Hủy xóa');
+		return;
+	}
+
+	let tours = JSON.parse(localStorage.getItem("tours")) || [];
+	tours = tours.filter(t => t.id !== id);
+	localStorage.setItem("tours", JSON.stringify(tours));
+	toastSuccess("Xóa tour thành công");
+	loadTours();
+}
+
+function openAdminReviews(tourId){
+	let reviews = JSON.parse(localStorage.getItem('reviews')) || [];
+	let tours = JSON.parse(localStorage.getItem('tours')) || [];
+	let tour = tours.find(t => t.id === tourId) || { name: 'Tour' };
+	let modal = document.getElementById('adminReviewModal');
+	let body = document.getElementById('adminReviewBody');
+	modal.querySelector('.modal-title').textContent = `Đánh giá - ${tour.name}`;
+
+	let tourReviews = reviews.filter(r => r.tourId === tourId);
+	if(tourReviews.length === 0){
+		body.innerHTML = `<div class="card"><p>Chưa có đánh giá cho tour này.</p></div>`;
+	} else {
+		let avg = (tourReviews.reduce((s,r)=>s+r.rating,0)/tourReviews.length).toFixed(1);
+		let html = `<div class="card"><p>Trung bình: ${avg}/5 - ${tourReviews.length} đánh giá</p></div>`;
+		tourReviews.forEach(r => {
+			let reviewer = r.userId ? `Người dùng ${r.userId}` : 'Khách';
+			html += `
+				<div class="review-entry">
+					<h3>${reviewer}</h3>
+					<p>⭐ ${r.rating}/5</p>
+					<p>${r.comment}</p>
+					<small>${r.createdAt || '-'}</small>
+				</div>
+			`;
+		});
+		body.innerHTML = html;
+	}
+
+	modal.classList.remove('hidden');
+}
+
+function closeAdminReviewModal(){
+	document.getElementById('adminReviewModal').classList.add('hidden');
+}
+
+function adminDeleteReview(reviewId, tourId){
+	let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+	toastError("Đánh giá là bất biến; không thể xóa hoặc sửa.");
+	return;
+}
+
+function adminEditReview(reviewId){
+	let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+	toastError("Đánh giá là bất biến; không thể sửa hoặc xóa.");
+	return;
+}
+
+function startEditTour(id){
+	let tours = JSON.parse(localStorage.getItem("tours")) || [];
+	let tour = tours.find(t => t.id === id);
+	if(!tour) return;
+
+	document.getElementById("name").value = tour.name || "";
+	document.getElementById("location").value = tour.location || "";
+	document.getElementById("price").value = tour.price || "";
+	document.getElementById("description").value = tour.description || "";
+	document.getElementById("editId").value = tour.id;
+	document.getElementById("submitBtn").innerText = "Cập nhật Tour";
+
+	// Hiển thị xem trước ảnh nếu có
+	var img = document.getElementById('imagePreview');
+	if(img){
+		if(tour.image){ img.src = tour.image; img.style.display = 'block'; }
+		else { img.src = ''; img.style.display = 'none'; }
+	}
+}
+
+function clearForm(){
+	document.getElementById("name").value = "";
+	document.getElementById("location").value = "";
+	document.getElementById("price").value = "";
+	document.getElementById("description").value = "";
+	document.getElementById("imageFile").value = "";
+	document.getElementById("editId").value = "";
+	document.getElementById("submitBtn").innerText = "Thêm Tour";
+
+	// Reset preview
+	var img = document.getElementById('imagePreview');
+	if(img){ img.src = ''; img.style.display = 'none'; }
+}
+
+loadTours();
+// Hiển thị xem trước khi chọn file ảnh mới
+document.getElementById('imageFile').addEventListener('change', function(e){
+	var file = e.target.files && e.target.files[0];
+	var img = document.getElementById('imagePreview');
+	if(!img) return;
+	if(!file){ img.src = ''; img.style.display = 'none'; return; }
+	var reader = new FileReader();
+	reader.onload = function(ev){ img.src = ev.target.result; img.style.display = 'block'; };
+	reader.readAsDataURL(file);
+});
+</script>
+
+</body>
+</html>

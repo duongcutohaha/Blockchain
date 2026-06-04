@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Đăng ký</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/toast.js"></script>
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <div class="branding">
+            <h1>🌍 Hệ thống đặt tour</h1>
+            <p class="small">Tạo tài khoản để quản lý đặt tour của bạn</p>
+        </div>
+        <nav>
+            <a href="index.html">Trang chủ</a>
+            <a href="login.html">Đăng nhập</a>
+        </nav>
+    </div>
+</header>
+
+<div class="form-container">
+
+    <h2>Đăng ký</h2>
+
+    <input
+        id="fullname"
+        placeholder="Họ tên"
+    >
+
+    <input
+        id="email"
+        placeholder="Email"
+    >
+
+    <input
+        id="password"
+        type="password"
+        placeholder="Mật khẩu"
+    >
+
+    <button onclick="register()">
+        Đăng ký
+    </button>
+
+    <p>
+        Đã có tài khoản?
+        <a href="login.html">
+            Đăng nhập
+        </a>
+    </p>
+
+</div>
+
+<script>
+
+let users =
+JSON.parse(
+localStorage.getItem("users")
+) || [];
+
+let adminExists = users.some(u => u.role === "admin");
+
+if(!adminExists){
+    users.push({
+        id:1,
+        fullname:"Admin",
+        email:"admin@gmail.com",
+        password:"123456",
+        role:"admin"
+    });
+
+    localStorage.setItem(
+        "users",
+        JSON.stringify(users)
+    );
+}
+
+function register(){
+
+let fullname =
+document.getElementById(
+"fullname"
+).value;
+
+let email =
+document.getElementById(
+"email"
+).value;
+
+let password =
+document.getElementById(
+"password"
+).value;
+
+let users =
+JSON.parse(
+localStorage.getItem("users")
+) || [];
+
+let check =
+users.find(
+u => u.email === email
+);
+
+if(check){
+
+toastError("Email đã tồn tại");
+
+return;
+}
+
+users.push({
+
+id:Date.now(),
+
+fullname,
+
+email,
+
+password,
+
+role:"user"
+
+});
+
+localStorage.setItem(
+"users",
+JSON.stringify(users)
+);
+
+toastSuccess(
+"Đăng ký thành công"
+);
+
+location.href =
+"login.html";
+
+}
+
+</script>
+
+</body>
+</html>

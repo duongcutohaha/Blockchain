@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Lịch sử đặt tour</title>
+
+<link rel="stylesheet"
+href="css/style.css">
+
+</head>
+
+<body>
+
+<h1>Lịch sử đặt tour</h1>
+
+<a href="index.html">
+Quay lại
+</a>
+
+<div id="historyList">
+</div>
+
+<script>
+
+let user =
+JSON.parse(
+localStorage.getItem(
+"currentUser"
+));
+
+if(!user){
+
+location.href =
+"login.html";
+
+}
+
+let bookings =
+JSON.parse(
+localStorage.getItem(
+"bookings"
+)) || [];
+
+let tours =
+JSON.parse(
+localStorage.getItem(
+"tours"
+)) || [];
+
+let html = "";
+
+bookings
+.filter(
+b => b.userId == user.id
+)
+.forEach(b => {
+
+let tour =
+tours.find(
+t => t.id == b.tourId
+);
+
+html += `
+
+<div class="card">
+
+<h3>
+${tour.name}
+</h3>
+
+<p>
+Ngày đặt: ${b.bookingDate}
+</p>
+
+<p>
+Số điện thoại: ${b.phone || "Chưa có"}
+</p>
+
+<p>
+${b.status}
+</p>
+
+</div>
+
+`;
+
+});
+
+document.getElementById(
+"historyList"
+).innerHTML = html;
+
+</script>
+
+</body>
+</html>
